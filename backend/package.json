@@ -7,6 +7,7 @@
   "dependencies": {
     "hono": "^4.6.13",
     "jsonwebtoken": "^9.0.2",
+    "prisma": "^6.0.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {
