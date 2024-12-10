@@ -1,10 +1,29 @@
 import { Hono } from "hono";
 import SignUpSchema from "../lib/schemas/signup";
 import SigninSchema from "../lib/schemas/signin";
+import { PrismaClient } from '@prisma/client/edge'
+import { withAccelerate } from '@prisma/extension-accelerate'
 
-const app = new Hono()
+
+
+const app = new Hono<{
+    Bindings: {
+        DATABASE_URL: string,
+        JWT_SECRET: string
+    },
+    Variables: {
+        userId: string,
+    }
+}>()
+
+.use()
 
 .post("/signup", async (c) => {
+
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env?.DATABASE_URL  
+    }).$extends(withAccelerate())
+
     const body = await c.req.parseBody();
     const { email, password } = body;
 
@@ -16,7 +35,23 @@ const app = new Hono()
 
     // Simulate database interaction
     try{
-        // DB Call 
+
+        const user = await prisma.user.findUnique({
+            where: {
+                email: email as string
+            }
+        })  
+
+        if(user) {
+            return c.json({ message: "User already exists" }, { status: 400 });
+        }
+
+        await prisma.user.create({
+            data: {
+                email: email as string ,
+                password: password as string,
+            }
+        })
         console.log("User registered successfully");
     }
     catch(error) {
@@ -36,14 +71,14 @@ const app = new Hono()
     const { success } = SigninSchema.safeParse({ email, password });
     
     if(!success) {
-        return c.json({ message: "Invalid email or password" }, { status: 400 });
+        return c.json({ message: "Invalid email or password" }) as Response;
     }
 
     return c.text('Signin Page');
 })
 
 .get('/blog', async (c) => {
-    
+
 })
 
 .put('/blog', async (c) => {
