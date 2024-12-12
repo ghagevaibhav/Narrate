@@ -12,36 +12,41 @@ export const userRouter = new Hono<{
 
 userRouter.post('/signup', async (c) => {
     const prisma = new PrismaClient({
-      datasourceUrl: c.env.DATABASE_URL,
+        datasourceUrl: c.env.DATABASE_URL,
     }).$extends(withAccelerate());
-  
+
     const body = await c.req.json();
-  
+
     const user = await prisma.user.create({
-      data: {
-        email: body.email,
-        password: body.password,
-      },
+        data: {
+            email: body.email,
+            password: body.password,
+        },
     });
-  
+
     const token = await sign({ id: user.id }, c.env.JWT_SECRET)
-  
+
     return c.json({
-      jwt: token
+        message: "Signup successful",
+        user: {
+            id: user.id,
+            email: user.email
+        },
+        jwt: token
     })
 })
-  
+
 userRouter.post('/signin', async (c) => {
     const prisma = new PrismaClient({
-    //@ts-ignore
-        datasourceUrl: c.env?.DATABASE_URL	,
+        //@ts-ignore
+        datasourceUrl: c.env?.DATABASE_URL,
     }).$extends(withAccelerate());
 
     const body = await c.req.json();
     const user = await prisma.user.findUnique({
         where: {
             email: body.email,
-    password: body.password
+            password: body.password
         }
     });
 
@@ -51,5 +56,5 @@ userRouter.post('/signin', async (c) => {
     }
 
     const jwt = await sign({ id: user.id }, c.env.JWT_SECRET);
-    return c.json({ jwt });
+    return c.json({ message: "Signed in successfully", jwt: jwt, id: user.id });
 })
