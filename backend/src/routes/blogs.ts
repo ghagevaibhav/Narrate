@@ -14,27 +14,30 @@ export const blogRouter = new Hono<{
 }>();
 
 // Middleware for authentication
-blogRouter.use('/*', async (c, next) => {
+blogRouter.use(async (c, next) => {
     try {
         console.log('Entering authentication middleware');
         const jwt = c.req.header('Authorization');
-        
+
         if (!jwt) {
+            console.error('No authorization token provided');
             c.status(401);
             return c.json({ error: "No authorization token provided" });
         }
-        
+
         const token = jwt.split(' ')[1];
         const payload = await verify(token, c.env.JWT_SECRET);
-        
-        if (!payload) {
+
+        if (!payload || !payload.id) {
+            console.error('Invalid authorization token or missing user ID in payload');
             c.status(401);
             return c.json({ error: "Invalid authorization token" });
         }
-        
+
         c.set('userId', payload.id as string);
         console.log('User authenticated:', payload.id);
-        
+
+        // Pass control to the next route/middleware
         await next();
     } catch (error) {
         console.error('Authentication middleware error:', error);
@@ -46,8 +49,9 @@ blogRouter.use('/*', async (c, next) => {
     }
 });
 
+
 // Create a new blog post
-blogRouter.post('/', async (c) => {
+blogRouter.post('/createBlog', async (c) => {
     try {
         console.log('Inside blog post creation route');
         const userId = c.get('userId');
@@ -89,7 +93,7 @@ blogRouter.post('/', async (c) => {
 });
 
 // Update an existing blog post
-blogRouter.put('/', async (c) => {
+blogRouter.put('/updateBlog', async (c) => {
     try {
         const userId = c.get('userId');
         const prisma = new PrismaClient({
@@ -132,6 +136,7 @@ blogRouter.put('/', async (c) => {
 // Get a specific blog post by ID
 blogRouter.get('/:id', async (c) => {
     try {
+        console.log('Inside get blog route');
         const id = c.req.param('id');
         const prisma = new PrismaClient({
             datasourceUrl: c.env?.DATABASE_URL,
@@ -158,7 +163,7 @@ blogRouter.get('/:id', async (c) => {
 });
 
 // Get all posts (optional route)
-blogRouter.get('/', async (c) => {
+blogRouter.get('/getBlogs', async (c) => {
     try {
         const userId = c.get('userId');
         const prisma = new PrismaClient({
