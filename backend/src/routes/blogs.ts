@@ -1,94 +1,85 @@
+import { PrismaClient } from "@prisma/client/edge";
+import { withAccelerate } from "@prisma/extension-accelerate";
 import { Hono } from "hono";
-import SignUpSchema from "../lib/schemas/signup";
-import SigninSchema from "../lib/schemas/signin";
-import { PrismaClient } from '@prisma/client/edge'
-import { withAccelerate } from '@prisma/extension-accelerate'
+import { verify } from "hono/jwt";
 
-
-
-const app = new Hono<{
+export const blogRouter = new Hono<{
     Bindings: {
-        DATABASE_URL: string,
-        JWT_SECRET: string
+        DATABASE_URL: string;
+        JWT_SECRET: string;
     },
     Variables: {
-        userId: string,
+        userId: string
     }
-}>()
+}>();
 
-.use()
+blogRouter.use(async (c, next) => {
+    const jwt = c.req.header('Authorization');
+	if (!jwt) {
+		c.status(401);
+		return c.json({ error: "unauthorized" });
+	}
+	const token = jwt.split(' ')[1];
+	const payload = await verify(token, c.env.JWT_SECRET);
+	if (!payload) {
+		c.status(401);
+		return c.json({ error: "unauthorized" });
+	}
+	c.set('userId', payload.id as string);
+	await next()
+});
 
-.post("/signup", async (c) => {
+blogRouter.post('/', async (c) => {
+	const userId = c.get('userId');
+	const prisma = new PrismaClient({
+		datasourceUrl: c.env?.DATABASE_URL	,
+	}).$extends(withAccelerate());
 
-    const prisma = new PrismaClient({
-        datasourceUrl: c.env?.DATABASE_URL  
-    }).$extends(withAccelerate())
-
-    const body = await c.req.parseBody();
-    const { email, password } = body;
-
-    const { success } = SignUpSchema.safeParse({ email, password });
-
-    if(!success) {
-        return c.json({ message: "Invalid email or password" }, { status: 400 });
-    }
-
-    // Simulate database interaction
-    try{
-
-        const user = await prisma.user.findUnique({
-            where: {
-                email: email as string
-            }
-        })  
-
-        if(user) {
-            return c.json({ message: "User already exists" }, { status: 400 });
-        }
-
-        await prisma.user.create({
-            data: {
-                email: email as string ,
-                password: password as string,
-            }
-        })
-        console.log("User registered successfully");
-    }
-    catch(error) {
-        console.error("Error registering user:", error);
-        return c.json({ message: "Error registering user" }, { status: 500 });
-    }
-
-    return c.json({ message: "Signup" });
+	const body = await c.req.json();
+	const post = await prisma.post.create({
+		data: {
+			title: body.title,
+			content: body.content,
+			authorId: userId
+		}
+	});
+	return c.json({
+		id: post.id
+	});
 })
 
+blogRouter.put('/', async (c) => {
+	const userId = c.get('userId');
+	const prisma = new PrismaClient({
+		datasourceUrl: c.env?.DATABASE_URL	,
+	}).$extends(withAccelerate());
 
-.post('/signin', async (c) => {
+	const body = await c.req.json();
+	prisma.post.update({
+		where: {
+			id: body.id,
+			authorId: userId
+		},
+		data: {
+			title: body.title,
+			content: body.content
+		}
+	});
 
-    const body = await c.req.parseBody();
-    const { email, password, token } = body;
+	return c.text('updated post');
+});
 
-    const { success } = SigninSchema.safeParse({ email, password });
-    
-    if(!success) {
-        return c.json({ message: "Invalid email or password" }) as Response;
-    }
+blogRouter.get('/:id', async (c) => {
+	const id = c.req.param('id');
+	const prisma = new PrismaClient({
+		datasourceUrl: c.env?.DATABASE_URL	,
+	}).$extends(withAccelerate());
+	
+	const post = await prisma.post.findUnique({
+		where: {
+			id
+		}
+	});
 
-    return c.text('Signin Page');
+	return c.json(post);
 })
-
-.get('/blog', async (c) => {
-
-})
-
-.put('/blog', async (c) => {
-
-})
-
-.get('/blog/:id', async (c) => {
-
-})
-
-
-
-export default app;
