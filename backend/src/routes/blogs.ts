@@ -14,7 +14,7 @@ export const blogRouter = new Hono<{
 }>();
 
 // Middleware for authentication
-blogRouter.use(async (c, next) => {
+blogRouter.use("/*",async (c, next) => {
     try {
         console.log('Entering authentication middleware');
         const jwt = c.req.header('Authorization');
@@ -134,7 +134,7 @@ blogRouter.put('/updateBlog', async (c) => {
 });
 
 // Get all posts (optional route)
-blogRouter.get('/getBlogs', async (c) => {
+blogRouter.get('/bulk', async (c) => {
     try {
         const userId = c.get('userId');
         const prisma = new PrismaClient({
