@@ -133,6 +133,29 @@ blogRouter.put('/updateBlog', async (c) => {
     }
 });
 
+// Get all posts (optional route)
+blogRouter.get('/getBlogs', async (c) => {
+    try {
+        const userId = c.get('userId');
+        const prisma = new PrismaClient({
+            datasourceUrl: c.env?.DATABASE_URL,
+        }).$extends(withAccelerate());
+        
+        const posts = await prisma.post.findMany({
+            where: { authorId: userId }
+        });
+
+        return c.json(posts);
+    } catch (error) {
+        console.error('Error in get all posts route:', error);
+        c.status(500);
+        return c.json({ 
+            error: 'Failed to retrieve posts', 
+            details: error instanceof Error ? error.message : 'Unknown error' 
+        });
+    }
+});
+
 // Get a specific blog post by ID
 blogRouter.get('/:id', async (c) => {
     try {
@@ -157,29 +180,6 @@ blogRouter.get('/:id', async (c) => {
         c.status(500);
         return c.json({ 
             error: 'Failed to retrieve post', 
-            details: error instanceof Error ? error.message : 'Unknown error' 
-        });
-    }
-});
-
-// Get all posts (optional route)
-blogRouter.get('/getBlogs', async (c) => {
-    try {
-        const userId = c.get('userId');
-        const prisma = new PrismaClient({
-            datasourceUrl: c.env?.DATABASE_URL,
-        }).$extends(withAccelerate());
-        
-        const posts = await prisma.post.findMany({
-            where: { authorId: userId }
-        });
-
-        return c.json(posts);
-    } catch (error) {
-        console.error('Error in get all posts route:', error);
-        c.status(500);
-        return c.json({ 
-            error: 'Failed to retrieve posts', 
             details: error instanceof Error ? error.message : 'Unknown error' 
         });
     }
