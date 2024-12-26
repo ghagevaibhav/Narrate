@@ -2,7 +2,7 @@ import { SignInSchema, SignUpSchema } from "@ghagevaibhav/medium-common";
 import axios from "axios";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom"
-import { BACKEND_URL } from "../confiig";
+import { BACKEND_URL } from "../config";
 
 type AuthType = "signup" | "signin";
 
