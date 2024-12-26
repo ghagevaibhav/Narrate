@@ -2,15 +2,16 @@ import axios from "axios";
 import { useEffect, useState } from "react"
 import { BACKEND_URL } from "../config";
 
-interface Blog {
+export interface Blog {
   id: number;
   title: string;
   content: string;
-  publishedDate: string;
+  publishedDate?: string;
   author: {
     username: string;
   };
 }
+
 
 export const useBlogs = () => {
 
@@ -33,20 +34,23 @@ export const useBlogs = () => {
 
 
 
-export const useBlog = () => {
+export const useBlog = (id: string | undefined) => {
     const [loading, setLoadnig] = useState(true);
-    const [blog, setBlog] = useState(null);
+    const [blog, setBlog] = useState<Blog>();
 
-    useEffect(() => {
-        const id = new URLSearchParams(window.location.search).get('id');
+    useEffect(() => {  
         if (id) {
-            axios.get(`${BACKEND_URL}/blog/${id}`)
-           .then((res) => {
+            axios.get(`${BACKEND_URL}/blog/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+            })
+            .then((res) => {
                 setBlog(res.data);
                 setLoadnig(false);
             })
         }
-    }, [])
+    }, [id])
 
     return { loading, blog }
 }
