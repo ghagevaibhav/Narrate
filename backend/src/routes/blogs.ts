@@ -153,7 +153,7 @@ blogRouter.get('/bulk', async (c) => {
             }
         });
 
-        return c.json(posts);
+        return c.json({posts: posts});
     } catch (error) {
         console.error('Error in get all posts route:', error);
         c.status(500);
