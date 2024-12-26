@@ -1,14 +1,20 @@
-import { SignUpSchema } from "@ghagevaibhav/medium-common";
+import { SignInSchema, SignUpSchema } from "@ghagevaibhav/medium-common";
 import { useState } from "react";
 import { Link } from "react-router-dom"
 
-export const Auth = ({ type }: { type: "signup" | "signin" }) => {
+type AuthType = "signup" | "signin";
 
-    const [postInputs, setPostInputs] = useState<SignUpSchema>({
-        username: "",
-        password: "",
-        email: "",
-    })
+interface AuthProps {
+    type: AuthType;
+}
+
+export const Auth = ({ type }: AuthProps) => {
+
+    const [postInputs, setPostInputs] = useState<SignInSchema | SignUpSchema>(
+        type === "signup"
+            ? { username: "", password: "", email: "" } as SignUpSchema
+            : { email: "", password: "" } as SignInSchema
+    );
 
     return (
         <div className="h-screen flex flex-col justify-center">
@@ -24,11 +30,18 @@ export const Auth = ({ type }: { type: "signup" | "signin" }) => {
                         </div>
                     </div>
                     <div className="pt-4">
-                        <LabelledInput
+                        {type === "signup" ? <LabelledInput
                             type="text"
                             label="Username"
                             placeholder="testuser"
                             onChange={(e) => setPostInputs((c) => ({ ...c, username: e.target.value }))}
+                        />: null}
+
+                        <LabelledInput
+                            type="email"
+                            label="Email"
+                            placeholder="testuser@gmail.com"
+                            onChange={(e) => setPostInputs((c) => ({ ...c, email: e.target.value }))}
                         />
 
                         <LabelledInput
@@ -38,12 +51,6 @@ export const Auth = ({ type }: { type: "signup" | "signin" }) => {
                             onChange={(e) => setPostInputs((c) => ({ ...c, password: e.target.value }))}
                         />
 
-                        <LabelledInput
-                            type="email"
-                            label="Email"
-                            placeholder="testuser@gmail.com"
-                            onChange={(e) => setPostInputs((c) => ({ ...c, email: e.target.value }))}
-                        />
                     </div>
                     <button type="button" className=" w-full mt-8 text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700">{type === "signin" ? "Sign in" : "Sign up"}</button>
                 </div>
