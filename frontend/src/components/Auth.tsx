@@ -1,6 +1,8 @@
 import { SignInSchema, SignUpSchema } from "@ghagevaibhav/medium-common";
+import axios from "axios";
 import { useState } from "react";
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import { BACKEND_URL } from "../confiig";
 
 type AuthType = "signup" | "signin";
 
@@ -9,12 +11,30 @@ interface AuthProps {
 }
 
 export const Auth = ({ type }: AuthProps) => {
+    const navigate = useNavigate();
 
     const [postInputs, setPostInputs] = useState<SignInSchema | SignUpSchema>(
         type === "signup"
             ? { username: "", password: "", email: "" } as SignUpSchema
             : { email: "", password: "" } as SignInSchema
     );
+
+    async function sendRequest() {
+        try {
+            const response = await axios.post(`${BACKEND_URL}/user/${type === 'signup' ? "signup" : "signin"}`, {
+                email: postInputs.email,
+                password: postInputs.password,
+                ...(type === 'signup' && 'username' in postInputs ? { username: postInputs.username } : {})
+            });
+
+            const jwt = response.data.jwt;
+            localStorage.setItem("token", jwt);
+            navigate('/blogs');
+        }
+        catch (error) {
+            console.error(error);
+        }
+    }
 
     return (
         <div className="h-screen flex flex-col justify-center">
@@ -35,7 +55,7 @@ export const Auth = ({ type }: AuthProps) => {
                             label="Username"
                             placeholder="testuser"
                             onChange={(e) => setPostInputs((c) => ({ ...c, username: e.target.value }))}
-                        />: null}
+                        /> : null}
 
                         <LabelledInput
                             type="email"
@@ -47,12 +67,12 @@ export const Auth = ({ type }: AuthProps) => {
                         <LabelledInput
                             type="password"
                             label="Password"
-                            placeholder="********"
+                            placeholder="******"
                             onChange={(e) => setPostInputs((c) => ({ ...c, password: e.target.value }))}
                         />
 
                     </div>
-                    <button type="button" className=" w-full mt-8 text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700">{type === "signin" ? "Sign in" : "Sign up"}</button>
+                    <button onClick={sendRequest} type="button" className=" w-full mt-8 text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700">{type === "signin" ? "Sign in" : "Sign up"}</button>
                 </div>
             </div>
         </div>
