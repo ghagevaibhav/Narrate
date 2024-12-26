@@ -14,7 +14,7 @@ export const blogRouter = new Hono<{
 }>();
 
 // Middleware for authentication
-blogRouter.use("/*",async (c, next) => {
+blogRouter.use("/*", async (c, next) => {
     try {
         console.log('Entering authentication middleware');
         const jwt = c.req.header('Authorization');
@@ -42,9 +42,9 @@ blogRouter.use("/*",async (c, next) => {
     } catch (error) {
         console.error('Authentication middleware error:', error);
         c.status(401);
-        return c.json({ 
-            error: "Authentication failed", 
-            details: error instanceof Error ? error.message : 'Unknown error' 
+        return c.json({
+            error: "Authentication failed",
+            details: error instanceof Error ? error.message : 'Unknown error'
         });
     }
 });
@@ -85,9 +85,9 @@ blogRouter.post('/createBlog', async (c) => {
     } catch (error) {
         console.error('Error in post creation route:', error);
         c.status(500);
-        return c.json({ 
-            error: 'Failed to create post', 
-            details: error instanceof Error ? error.message : 'Unknown error' 
+        return c.json({
+            error: 'Failed to create post',
+            details: error instanceof Error ? error.message : 'Unknown error'
         });
     }
 });
@@ -126,32 +126,40 @@ blogRouter.put('/updateBlog', async (c) => {
     } catch (error) {
         console.error('Error in post update route:', error);
         c.status(500);
-        return c.json({ 
-            error: 'Failed to update post', 
-            details: error instanceof Error ? error.message : 'Unknown error' 
+        return c.json({
+            error: 'Failed to update post',
+            details: error instanceof Error ? error.message : 'Unknown error'
         });
     }
 });
 
 // Get all posts (optional route)
 blogRouter.get('/bulk', async (c) => {
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env?.DATABASE_URL,
+    }).$extends(withAccelerate());
+
     try {
-        const userId = c.get('userId');
-        const prisma = new PrismaClient({
-            datasourceUrl: c.env?.DATABASE_URL,
-        }).$extends(withAccelerate());
-        
         const posts = await prisma.post.findMany({
-            where: { authorId: userId }
+            select: {
+                content: true,
+                title: true,
+                id: true,
+                author: {
+                    select: {
+                        username: true
+                    }
+                }
+            }
         });
 
         return c.json(posts);
     } catch (error) {
         console.error('Error in get all posts route:', error);
         c.status(500);
-        return c.json({ 
-            error: 'Failed to retrieve posts', 
-            details: error instanceof Error ? error.message : 'Unknown error' 
+        return c.json({
+            error: 'Failed to retrieve posts',
+            details: error instanceof Error ? error.message : 'Unknown error'
         });
     }
 });
@@ -164,9 +172,21 @@ blogRouter.get('/:id', async (c) => {
         const prisma = new PrismaClient({
             datasourceUrl: c.env?.DATABASE_URL,
         }).$extends(withAccelerate());
-        
-        const post = await prisma.post.findUnique({
-            where: { id }
+
+        const post = await prisma.post.findFirst({
+            where: {
+                id: id
+             },
+             select: {
+                id: true,
+                title: true,
+                content: true,
+                author: {
+                    select: {
+                        username: true
+                    }
+                }
+             }
         });
 
         if (!post) {
@@ -178,9 +198,9 @@ blogRouter.get('/:id', async (c) => {
     } catch (error) {
         console.error('Error in get post route:', error);
         c.status(500);
-        return c.json({ 
-            error: 'Failed to retrieve post', 
-            details: error instanceof Error ? error.message : 'Unknown error' 
+        return c.json({
+            error: 'Failed to retrieve post',
+            details: error instanceof Error ? error.message : 'Unknown error'
         });
     }
 });
